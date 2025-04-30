@@ -23,8 +23,13 @@ font = pygame.font.Font(None, 36)
 emoji_font = pygame.font.Font("NotoColorEmoji.ttf", 1)  # Replace with your emoji font file
 
 # Slot symbols
-symbols = ["🍒", "🍋", "🔔", "⭐", "🍉"]
+symbols = ["🍒", "🍋", "🥭", "🥑", "🍊", "💀", "🥩", "👑", "🥕", "🥪", "🐖", "🐢", "🏆", "🎈", "🚽", "🪑", "🍆", "🥚", "🥒", "🚗", "🛬", "🗼", "🥱", "🤔", "🤫", "🗣", "🔥", "🔮", "🎳", "🎁", "🌈", "🏳‍🌈", "📋", "🐑", "📳", "🌐"]
 symbol_colors = [RED, GREEN, BLUE, WHITE, RED]
+
+# Sounds
+win = pygame.mixer.Sound("win.wav")  # Win sound
+TDB = pygame.mixer.Sound("VBS.wav")  # Default spin sound
+spin_sounds = [pygame.mixer.Sound("VBS.wav"), pygame.mixer.Sound("MPF.wav"), pygame.mixer.Sound("TBD.wav")] 
 
 # Reel positions
 reel_positions = [WIDTH // 4, WIDTH // 2, 3 * WIDTH // 4]
@@ -36,6 +41,15 @@ button_rect = pygame.Rect(WIDTH // 2 - 50, HEIGHT - 80, 100, 50)
 # Counters
 wins = 0
 spins = 0
+
+# Initial balance
+balance = 1000  # Starting money
+spin_cost = 5  # Cost per spin
+win_reward = 100  # Reward for a win
+
+def draw_balance():
+    """Display the player's balance on the screen."""
+    drawText(f"Balance: ${balance}", WHITE, WIDTH // 2, HEIGHT - 290, 36)
 
 def draw_reels(reel_offsets=None):
     if reel_offsets is None:
@@ -55,16 +69,25 @@ def drawText(message, color, x, y, size):
     screen.blit(text, (x - text.get_width() // 2, y - text.get_height() // 2))
 
 def spin_reels():
-    global reel_results, wins, spins
+    global reel_results, wins, spins, balance
 
-    # Increment the spin counter
-    spins += 1
+    # Deduct the spin cost
+    if balance < spin_cost:
+        drawText("Not enough money!", RED, WIDTH // 2, HEIGHT // 2 + 150, 50)
+        pygame.display.flip()
+        pygame.time.delay(2000)
+        return
+
+    balance -= spin_cost  # Decrease balance
+    spins += 1  # Increment the spin counter
+
+    # Play a random spin sound
+    random.choice(spin_sounds).play()
 
     # Step 1: Replace emojis with question marks
-    reel_results = ["?", "?", "?"]
     draw_reels()
     pygame.display.flip()
-    pygame.time.delay(1000)  # Display question marks for 1 second
+    pygame.time.delay(50)
 
     # Step 2: Final results for each reel
     reel_results = [random.choice(symbols) for _ in range(3)]
@@ -73,7 +96,12 @@ def spin_reels():
 
     # Step 3: Check for a win
     if reel_results[0] == reel_results[1] == reel_results[2]:
-        wins += 1  # Increment the win counter
+        pygame.mixer.Sound.play(win)  # Play the win sound
+        for i, pos in enumerate(reel_positions):
+            text = emoji_font.render(reel_results[i], True, symbol_colors[i])
+            screen.blit(text, (pos - text.get_width() // 2, HEIGHT // 2 - text.get_height() // 2))
+        wins += 1
+        balance += win_reward  # Add the win reward
         drawText("You Win!", GREEN, WIDTH // 2, HEIGHT // 2 + 100, 50)
         pygame.display.flip()
         pygame.time.delay(2000)  # Pause for 2 seconds
@@ -98,6 +126,9 @@ def main():
         # Display the number of wins and spins
         drawText(f"Wins: {wins}", WHITE, WIDTH // 2, HEIGHT - 350, 36)
         drawText(f"Spins: {spins}", WHITE, WIDTH // 2, HEIGHT - 320, 36)
+
+        # Display the balance
+        draw_balance()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
